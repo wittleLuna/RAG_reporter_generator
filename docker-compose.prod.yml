@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  report-generator:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./temp:/app/temp
+      - ./chroma_db:/app/chroma_db
+    environment:
+      - DEBUG=False
+      - HOST=0.0.0.0
+      - PORT=8000
+      - AI_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+      - AI_MODEL_NAME=qwen-plus
+      - AI_API_KEY=sk-442562cd6b6b4b2896ebdac8ce8d047e
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3 

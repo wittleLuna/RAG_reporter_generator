@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片渲染测试</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        .test-content {
+            line-height: 1.6;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>图片渲染功能测试</h1>
+        
+        <div class="test-section">
+            <h2 class="test-title">测试报告内容</h2>
+            <div id="reportPreview" class="report-preview" style="display:block;">
+                <h4 style="margin-bottom:15px;color:#495057;border-bottom:2px solid #dee2e6;padding-bottom:8px;">
+                    <i class="fas fa-eye"></i> 报告预览
+                </h4>
+                <div class="report-content" id="reportContent">
+                    <!-- 测试内容将在这里渲染 -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="test-title">测试图片管理</h2>
+            <div id="imageList">
+                <!-- 图片管理区域将在这里显示 -->
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="test-title">测试按钮</h2>
+            <button onclick="testImageRendering()" class="btn btn-primary">测试图片渲染</button>
+            <button onclick="testImageList()" class="btn btn-secondary">测试图片列表</button>
+        </div>
+    </div>
+
+    <script>
+        // 测试数据
+        const testReport = `# 测试报告
+
+## 概述
+
+这是一个测试报告，用于验证图片渲染功能。
+
+## 技术实现
+
+在实现过程中，我们使用了以下技术：
+
+{{image:img_1}}
+
+如图所示，系统架构清晰明了。
+
+## 详细分析
+
+### 前端实现
+
+前端使用原生JavaScript实现了图片渲染功能：
+
+{{image:img_2}}
+
+### 后端处理
+
+后端使用Python FastAPI框架处理图片上传和描述生成：
+
+\`\`\`python
+async def get_image_description(file_path, ext="png"):
+    # 图片描述生成逻辑
+    pass
+\`\`\`
+
+## 结论
+
+通过测试验证，图片渲染功能工作正常。
+
+{{image:img_3}}
+
+希望这个功能能够为用户提供更好的体验。`;
+
+        const testImages = [
+            {
+                id: "img_1",
+                filename: "test1.png",
+                description: "系统架构图，展示了各个组件之间的关系"
+            },
+            {
+                id: "img_2", 
+                filename: "test2.jpg",
+                description: "前端界面截图，显示了用户交互界面"
+            },
+            {
+                id: "img_3",
+                filename: "test3.gif",
+                description: "功能演示动画，展示了系统的工作流程"
+            }
+        ];
+
+        // 渲染报告正文，自动插入图片和描述
+        function renderReportWithImages(report, images, imageBaseUrl = '/uploads') {
+            let html = report;
+            if (images && Array.isArray(images)) {
+                images.forEach(img => {
+                    // 构造图片HTML块
+                    const imgTag = `
+                        <div class="report-image-block" style="text-align:center;margin:20px 0;border:1px solid #eee;border-radius:8px;padding:15px;background:#fafafa;">
+                            <img src="${imageBaseUrl}/${img.filename}" alt="${img.description}" style="max-width:400px;max-height:300px;display:block;margin:0 auto 8px;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                            <div style="color:#666;font-size:0.9em;font-style:italic;">${img.description || '图片描述'}</div>
+                        </div>
+                    `;
+                    // 替换所有占位符
+                    html = html.replaceAll(`{{image:${img.id}}}`, imgTag);
+                });
+            }
+            // 处理未被替换的图片占位符
+            html = html.replace(/{{image:img_\d+}}/g, '<div style="color:red;text-align:center;padding:20px;background:#fff5f5;border:1px solid #fed7d7;border-radius:4px;">[图片未找到]</div>');
+            
+            // 将Markdown转换为HTML（简单处理）
+            html = convertMarkdownToHtml(html);
+            
+            return html;
+        }
+
+        // 简单的Markdown转HTML转换
+        function convertMarkdownToHtml(markdown) {
+            let html = markdown;
+            
+            // 标题转换
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+            
+            // 粗体转换
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // 代码块转换
+            html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // 行内代码转换
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // 列表转换
+            html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            
+            // 段落转换
+            html = html.replace(/^(?!<[h|u|p|d|i])(.*$)/gim, '<p>$1</p>');
+            
+            // 清理空段落
+            html = html.replace(/<p><\/p>/g, '');
+            html = html.replace(/<p>\s*<\/p>/g, '');
+            
+            return html;
+        }
+
+        // 渲染图片缩略图和描述编辑
+        function renderImageList(images, imageBaseUrl) {
+            const container = document.getElementById('imageList');
+            if (!container) return;
+            
+            container.innerHTML = '<h4 style="width:100%;margin-bottom:10px;color:#495057;">图片管理</h4>';
+            
+            images.forEach((img, index) => {
+                const div = document.createElement('div');
+                div.className = 'image-thumb-block';
+                div.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:10px;background:white;border-radius:6px;border:1px solid #dee2e6;min-width:120px;';
+                div.innerHTML = `
+                    <img src="${imageBaseUrl}/${img.filename}" style="max-width:80px;max-height:80px;border-radius:4px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <textarea data-img-id="${img.id}" class="img-desc-input" style="width:100px;height:60px;font-size:12px;padding:4px;border:1px solid #ced4da;border-radius:3px;resize:none;" placeholder="图片描述">${img.description || ''}</textarea>
+                    <div style="font-size:11px;color:#6c757d;margin-top:4px;">图片 ${index + 1}</div>
+                `;
+                container.appendChild(div);
+            });
+            
+            // 添加保存按钮
+            const saveBtn = document.createElement('button');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存描述';
+            saveBtn.style.cssText = 'margin-top:10px;padding:8px 16px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;font-size:14px;';
+            saveBtn.onclick = saveImageDescriptions;
+            container.appendChild(saveBtn);
+        }
+
+        // 保存图片描述
+        function saveImageDescriptions() {
+            const descriptions = {};
+            const textareas = document.querySelectorAll('.img-desc-input');
+            
+            textareas.forEach(textarea => {
+                const imgId = textarea.dataset.imgId;
+                const description = textarea.value.trim();
+                descriptions[imgId] = description;
+            });
+            
+            alert('图片描述已保存！\n' + JSON.stringify(descriptions, null, 2));
+            console.log('保存的图片描述:', descriptions);
+        }
+
+        // 测试图片渲染
+        function testImageRendering() {
+            const reportContent = document.getElementById('reportContent');
+            const reportHtml = renderReportWithImages(testReport, testImages, '/uploads');
+            reportContent.innerHTML = reportHtml;
+            console.log('图片渲染测试完成');
+        }
+
+        // 测试图片列表
+        function testImageList() {
+            renderImageList(testImages, '/uploads');
+            console.log('图片列表测试完成');
+        }
+
+        // 页面加载时自动运行测试
+        window.onload = function() {
+            testImageRendering();
+            testImageList();
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员消息中心</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        
+        .content {
+            display: flex;
+            height: 600px;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            overflow-y: auto;
+        }
+        
+        .user-list {
+            padding: 16px;
+        }
+        
+        .user-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .user-item:hover {
+            background: #e3f2fd;
+            transform: translateX(4px);
+        }
+        
+        .user-item.active {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+        
+        .user-item.unread {
+            border-left: 4px solid #e53e3e;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .user-info {
+            font-size: 0.8em;
+            color: #718096;
+        }
+        
+        .unread-count {
+            background: #e53e3e;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            margin-left: 8px;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-title {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .chat-history {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: white;
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message.sent {
+            align-items: flex-end;
+        }
+        
+        .message.received {
+            align-items: flex-start;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+        
+        .message.sent .message-content {
+            background: #667eea;
+            color: white;
+        }
+        
+        .message.received .message-content {
+            background: #f1f1f1;
+            color: #333;
+        }
+        
+        .message-time {
+            font-size: 0.7em;
+            color: #718096;
+            margin-top: 4px;
+        }
+        
+        .message-image {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-top: 4px;
+        }
+        
+        .chat-input {
+            padding: 16px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        
+        .chat-input button {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .chat-input button:hover {
+            background: #5a67d8;
+        }
+        
+        .chat-input input[type="file"] {
+            display: none;
+        }
+        
+        .file-btn {
+            padding: 8px;
+            background: #718096;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .no-chat {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #718096;
+            font-size: 1.1em;
+        }
+        
+        .refresh-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .refresh-btn:hover {
+            background: #5a67d8;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 300px;
+            }
+            
+            .chat-area {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-comments"></i> 管理员消息中心</h1>
+            <p>管理用户消息和回复</p>
+        </div>
+        
+        <div class="content">
+            <div class="sidebar">
+                <div class="user-list" id="userList">
+                    <!-- 用户列表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+            
+            <div class="chat-area">
+                <div class="chat-header">
+                    <div class="chat-title" id="chatTitle">选择用户开始聊天</div>
+                    <button class="refresh-btn" onclick="loadUnreadMessages()">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+                
+                <div class="chat-history" id="chatHistory">
+                    <div class="no-chat">
+                        <i class="fas fa-comments"></i> 请选择一个用户开始聊天
+                    </div>
+                </div>
+                
+                <div class="chat-input" id="chatInput" style="display: none;">
+                    <input type="text" id="messageInput" placeholder="输入消息..." onkeypress="handleKeyPress(event)">
+                    <input type="file" id="imageInput" accept="image/*">
+                    <button class="file-btn" onclick="document.getElementById('imageInput').click()">
+                        <i class="fas fa-image"></i>
+                    </button>
+                    <button onclick="sendMessage()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentUserId = null;
+        let currentUser = null;
+        
+        // 页面加载时获取未读消息
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUnreadMessages();
+            // 定时刷新未读消息
+            setInterval(loadUnreadMessages, 10000);
+        });
+        
+        // 加载未读消息
+        async function loadUnreadMessages() {
+            try {
+                const response = await fetch('/admin/unread_messages');
+                if (!response.ok) {
+                    throw new Error('获取未读消息失败');
+                }
+                const data = await response.json();
+                displayUserList(data);
+            } catch (error) {
+                console.error('加载未读消息失败:', error);
+            }
+        }
+        
+        // 显示用户列表
+        function displayUserList(userMessages) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+            
+            if (userMessages.length === 0) {
+                userList.innerHTML = '<div style="padding: 20px; text-align: center; color: #718096;">暂无未读消息</div>';
+                return;
+            }
+            
+            userMessages.forEach(userData => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item unread';
+                userItem.onclick = () => selectUser(userData.user);
+                
+                const unreadCount = userData.messages.length;
+                const lastMessage = userData.messages[0];
+                
+                userItem.innerHTML = `
+                    <div class="user-name">
+                        ${userData.user.name || userData.user.username}
+                        <span class="unread-count">${unreadCount}</span>
+                    </div>
+                    <div class="user-info">
+                        ${userData.user.student_id ? `学号: ${userData.user.student_id}` : ''}
+                        ${userData.user.class_name ? ` | 班级: ${userData.user.class_name}` : ''}
+                    </div>
+                    <div style="font-size: 0.8em; color: #a0aec0; margin-top: 4px;">
+                        ${lastMessage.content ? lastMessage.content.substring(0, 30) + '...' : '[图片]'}
+                    </div>
+                `;
+                
+                userList.appendChild(userItem);
+            });
+        }
+        
+        // 选择用户
+        async function selectUser(user) {
+            currentUser = user;
+            currentUserId = user.id;
+            
+            // 更新UI
+            document.getElementById('chatTitle').textContent = `${user.name || user.username} (${user.student_id || '无学号'})`;
+            document.getElementById('chatInput').style.display = 'flex';
+            
+            // 加载聊天记录
+            await loadChatHistory(user.id);
+            
+            // 更新用户列表选中状态
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.user-item').classList.add('active');
+        }
+        
+        // 加载聊天记录
+        async function loadChatHistory(userId) {
+            try {
+                const response = await fetch(`/admin/chat_history/${userId}`);
+                if (!response.ok) {
+                    throw new Error('获取聊天记录失败');
+                }
+                const messages = await response.json();
+                displayChatHistory(messages);
+            } catch (error) {
+                console.error('加载聊天记录失败:', error);
+            }
+        }
+        
+        // 显示聊天记录
+        function displayChatHistory(messages) {
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML = '';
+            
+            if (messages.length === 0) {
+                chatHistory.innerHTML = '<div class="no-chat">暂无聊天记录</div>';
+                return;
+            }
+            
+            messages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${message.from_user_id === currentUserId ? 'received' : 'sent'}`;
+                
+                let content = `<div class="message-content">${message.content || ''}</div>`;
+                
+                if (message.image_url) {
+                    content += `<img src="${message.image_url}" class="message-image" alt="图片">`;
+                }
+                
+                content += `<div class="message-time">${new Date(message.timestamp).toLocaleString()}</div>`;
+                
+                messageDiv.innerHTML = content;
+                chatHistory.appendChild(messageDiv);
+            });
+            
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+        
+        // 发送消息
+        async function sendMessage() {
+            if (!currentUserId) return;
+            
+            const messageInput = document.getElementById('messageInput');
+            const imageInput = document.getElementById('imageInput');
+            const content = messageInput.value.trim();
+            const imageFile = imageInput.files[0];
+            
+            if (!content && !imageFile) return;
+            
+            const formData = new FormData();
+            formData.append('to_user_id', currentUserId);
+            if (content) formData.append('content', content);
+            if (imageFile) formData.append('image', imageFile);
+            
+            try {
+                const response = await fetch('/admin/reply', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('发送消息失败');
+                }
+                
+                // 清空输入
+                messageInput.value = '';
+                imageInput.value = '';
+                
+                // 重新加载聊天记录
+                await loadChatHistory(currentUserId);
+                
+            } catch (error) {
+                console.error('发送消息失败:', error);
+                alert('发送消息失败: ' + error.message);
+            }
+        }
+        
+        // 处理回车键发送
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // 图片选择处理
+        document.getElementById('imageInput').addEventListener('change', function() {
+            if (this.files[0]) {
+                // 可以在这里添加图片预览功能
+                console.log('选择了图片:', this.files[0].name);
+            }
+        });
+    </script>
+</body>
+</html> 

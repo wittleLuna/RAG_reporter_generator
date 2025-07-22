@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG实训报告生成系统</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .main-bg {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header {
+            width: 100vw;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #fff;
+            padding: 60px 0 40px 0;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), 
+                        linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%), 
+                        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            animation: headerShimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes headerShimmer {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+        
+        .header .main-title {
+            font-size: 2.8em;
+            font-weight: 800;
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            from { text-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.1); }
+            to { text-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 30px rgba(255,255,255,0.2); }
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.95;
+            margin-bottom: 0;
+            position: relative;
+            z-index: 1;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.1);
+            padding: 48px 48px 32px 48px;
+            width: 100%;
+            max-width: 1200px;
+            margin: -80px auto 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            z-index: 3;
+            animation: cardFloat 6s ease-in-out infinite;
+        }
+        
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .main-card-content {
+            display: flex;
+            flex-direction: row;
+            gap: 60px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        
+        .main-card-left, .main-card-right {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        
+        .main-card-left {
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-card-right {
+            max-width: 500px;
+        }
+        
+        .main-card-generate {
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            padding-bottom: 8px;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+        
+        .section-title i {
+            color: #667eea;
+            font-size: 1.1em;
+        }
+        
+        .section-divider {
+            border: none;
+            border-top: 2px solid #e8ecf3;
+            margin: 40px 0 24px 0;
+            position: relative;
+        }
+        
+        .section-divider::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 1px;
+        }
+        
+        .info-upload-row {
+            display: block;
+            width: 100%;
+        }
+        
+        .info-table {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+        }
+        
+        .info-table label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.95em;
+            color: #34495e;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+        
+        .info-table input, .info-table textarea {
+            margin-top: 8px;
+            border-radius: 12px;
+            border: 2px solid #e8ecf3;
+            padding: 12px 16px;
+            font-size: 0.95em;
+            background: rgba(248, 250, 252, 0.8);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-table input:focus, .info-table textarea:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .upload-section {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        
+        .upload-type-card {
+            border: 3px dashed #cbd5e0;
+            background: rgba(248, 250, 252, 0.6);
+            border-radius: 16px;
+            margin-bottom: 20px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+        
+        .upload-type-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .upload-type-card:hover::before {
+            left: 100%;
+        }
+        
+        .upload-type-card.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2);
+        }
+        
+        .upload-card-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 110px;
+            cursor: pointer;
+            padding: 15px 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .upload-icon {
+            font-size: 2.2em;
+            color: #667eea;
+            margin-bottom: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .upload-type-card:hover .upload-icon {
+            transform: scale(1.1);
+        }
+        
+        .upload-tip {
+            color: #4a5568;
+            font-size: 0.95em;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .file-hint {
+            color: #a0aec0;
+            font-size: 0.85em;
+            margin-top: 4px;
+        }
+        
+        .uploaded-list {
+            width: 100%;
+            margin-top: 4px;
+            padding: 0 12px 8px 12px;
+        }
+        
+        .uploaded-file-item {
+            display: flex;
+            align-items: center;
+            background: rgba(237, 242, 247, 0.8);
+            border-radius: 10px;
+            padding: 6px 12px;
+            margin-bottom: 6px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(203, 213, 224, 0.3);
+        }
+        
+        .uploaded-file-item:hover {
+            background: rgba(237, 242, 247, 1);
+            transform: translateX(4px);
+        }
+        
+        .uploaded-file-delete {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.9em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
+        }
+        
+        .uploaded-file-delete:hover {
+            background: linear-gradient(135deg, #c53030, #9b2c2c);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+        }
+        
+        .uploaded-file-name {
+            flex: 1;
+            color: #2d3748;
+            font-size: 0.9em;
+            word-break: break-all;
+            font-weight: 500;
+        }
+        
+        .prompt-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        
+        .prompt-help {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            margin-left: 6px;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+        
+        .prompt-help:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+        
+        .prompt-help[data-tooltip]::after {
+            content: attr(data-tooltip);
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: 130%;
+            transform: translateX(-50%);
+            min-width: 220px;
+            max-width: 380px;
+            background: #181e36;
+            color: #fff;
+            font-size: 1.08em;
+            font-weight: bold;
+            padding: 18px 22px;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+            white-space: pre-line;
+            pointer-events: none;
+            z-index: 9999;
+            border: 2px solid #667eea;
+            opacity: 0.99;
+            line-height: 1.7;
+            text-shadow: 0 1px 2px #000, 0 0 2px #fff2;
+            letter-spacing: 0.5px;
+        }
+        
+        .prompt-help[data-tooltip]:hover::after {
+            display: block;
+            animation: tooltipFadeIn 0.3s ease;
+        }
+        
+        @keyframes tooltipFadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .form-group {
+            width: 100%;
+            margin-bottom: 6px;
+        }
+        
+        .form-control, textarea {
+            width: 100%;
+            border-radius: 12px;
+            border: 2px solid #e8ecf3;
+            padding: 12px 16px;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            background: rgba(248, 250, 252, 0.8);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .form-control:focus, textarea:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .btn, .btn-magic {
+            display: inline-block;
+            padding: 14px 28px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before, .btn-magic::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before, .btn-magic:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover, .btn-magic:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active, .btn-magic:active {
+            transform: translateY(0);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(237, 242, 247, 0.8);
+            border-radius: 8px;
+            margin: 12px 0 6px 0;
+            overflow: hidden;
+            display: block;
+            border: 1px solid rgba(203, 213, 224, 0.3);
+        }
+        
+        .progress-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0;
+            transition: width 0.4s ease;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-inner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: progressShimmer 2s infinite;
+        }
+        
+        @keyframes progressShimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .report-status {
+            margin: 8px 0;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+        
+        .download-section {
+            margin-top: 8px;
+        }
+        
+        .main-card-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 24px;
+        }
+        
+        /* 生成模式选择器样式 */
+        .generation-mode-selector {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 16px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .mode-option {
+            margin-bottom: 12px;
+        }
+        
+        .mode-option:last-child {
+            margin-bottom: 0;
+        }
+        
+        .mode-option input[type="radio"] {
+            display: none;
+        }
+        
+        .mode-option label {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .mode-option input[type="radio"]:checked + label {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.1);
+            box-shadow: 0 4px 16px rgba(102,126,234,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .mode-option label i {
+            margin-right: 12px;
+            font-size: 16px;
+            color: #667eea;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .mode-option label span {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 12px;
+        }
+        
+        .mode-option label small {
+            color: #718096;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .mode-option:hover label {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* 页面控制区域样式 */
+        .page-control-section {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 16px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .page-control-section .section-title {
+            margin-bottom: 12px;
+            font-size: 1em;
+        }
+        
+        .page-control-section .section-title::after {
+            width: 30px;
+        }
+        
+        .page-control-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .page-control-row label {
+            margin: 0;
+            font-size: 0.9em;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .page-control-row select,
+        .page-control-row input[type="number"] {
+            width: auto;
+            margin: 0;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            border-radius: 8px;
+            border: 2px solid #e8ecf3;
+            background: rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .page-control-row select:focus,
+        .page-control-row input[type="number"]:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .page-control-row span {
+            color: #718096;
+            font-size: 0.85em;
+        }
+        
+        .multi-round-checkbox {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .multi-round-checkbox label {
+            font-size: 0.95em;
+            color: #4a5568;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .multi-round-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+        
+        .template-hint {
+            font-size: 0.85em;
+            color: #2c3e50;
+            opacity: 0.6;
+            margin: 6px 0 0 0;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            transition: opacity 0.3s ease;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .upload-type-card .template-hint-detail {
+            display: none;
+            font-size: 0.9em;
+            color: #2c3e50;
+            opacity: 0.95;
+            margin: 6px 0 0 0;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            text-align: left;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: absolute;
+            left: 50%;
+            top: 65%;
+            transform: translate(-50%, 0);
+            z-index: 20;
+            min-width: 240px;
+            max-width: 350px;
+            pointer-events: none;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .upload-type-card:hover .template-hint {
+            opacity: 0;
+        }
+        
+        .upload-type-card:hover .template-hint-detail {
+            display: block;
+            animation: hintFadeIn 0.3s ease;
+        }
+        
+        @keyframes hintFadeIn {
+            from { opacity: 0; transform: translate(-50%, -10px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        
+        .footer {
+            width: 100vw;
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 1.05em;
+            margin-top: 40px;
+            padding: 20px 0 0 0;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .footer i {
+            color: #fbbf24;
+            margin-right: 8px;
+            animation: footerGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes footerGlow {
+            from { text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+            to { text-shadow: 0 0 20px rgba(251, 191, 36, 0.8); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 40px 0 20px 0;
+                border-bottom-left-radius: 24px;
+                border-bottom-right-radius: 24px;
+            }
+            
+            .header .main-title {
+                font-size: 2.2em;
+            }
+            
+            .main-card {
+                padding: 24px 16px 16px 16px;
+                margin: -60px 16px 0 16px;
+                border-radius: 20px;
+            }
+            
+            .main-card-content {
+                flex-direction: column;
+                gap: 32px;
+            }
+            
+            .main-card-left, .main-card-right {
+                max-width: 100%;
+            }
+            
+            .main-card-generate {
+                align-items: stretch;
+            }
+            
+            .info-table {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .page-control-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .page-control-row select,
+            .page-control-row input[type="number"] {
+                width: 100%;
+            }
+            
+            /* 用户信息栏移动端适配 */
+            .user-info-bar {
+                flex-direction: column;
+                gap: 16px;
+                padding: 20px;
+                margin: -20px 8px 20px 8px;
+            }
+            
+            .user-info-right {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .template-btn, .profile-btn, .logout-btn {
+                flex: 1;
+                min-width: 120px;
+                justify-content: center;
+            }
+            
+            /* 模态框移动端适配 */
+            .modal-content {
+                margin: 10% auto;
+                padding: 20px;
+                width: 95%;
+            }
+            
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+            }
+            
+            .modal-btn {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header .main-title {
+                font-size: 1.8em;
+                letter-spacing: 2px;
+            }
+            
+            .header .subtitle {
+                font-size: 1em;
+            }
+            
+            .main-card {
+                padding: 20px 12px 12px 12px;
+                margin: -50px 8px 0 8px;
+            }
+            
+            .section-title {
+                font-size: 1.2em;
+            }
+            
+            .upload-type-card {
+                min-height: 100px;
+            }
+            
+            .upload-card-inner {
+                height: 90px;
+            }
+        }
+        
+        /* 用户信息栏样式 */
+        .user-info-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin: -40px auto 20px auto;
+            padding: 16px 24px;
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            z-index: 3;
+        }
+        
+        .user-info-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1em;
+        }
+        
+        .user-class {
+            color: #718096;
+            font-size: 0.85em;
+        }
+        
+        .user-info-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .template-btn, .profile-btn, .logout-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .template-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .template-btn:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .profile-btn {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .profile-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+        }
+        
+        .logout-btn:hover {
+            background: linear-gradient(135deg, #c53030, #9b2c2c);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            margin: 5% auto;
+            padding: 32px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e8ecf3;
+        }
+        
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close:hover {
+            color: #667eea;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .template-card {
+            background: rgba(248, 250, 252, 0.8);
+            border: 2px solid #e8ecf3;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .template-card:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+        
+        .template-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .template-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .template-info {
+            font-size: 0.85em;
+            color: #718096;
+        }
+        
+        .template-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .template-action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .use-template-btn {
+            background: #667eea;
+            color: white;
+        }
+        
+        .delete-template-btn {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .create-template-section {
+            border-top: 2px solid #e8ecf3;
+            padding-top: 24px;
+        }
+        
+        .create-template-form {
+            display: grid;
+            gap: 16px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 6px;
+        }
+        
+        .form-input {
+            padding: 10px 12px;
+            border: 2px solid #e8ecf3;
+            border-radius: 8px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 2px solid #e8ecf3;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .modal-btn-secondary {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        #templateGuideModal .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .top-navbar-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .admin-only {
+            background: linear-gradient(135deg, #e53e3e, #c53030) !important;
+            color: white !important;
+        }
+        
+        .admin-only:hover {
+            background: linear-gradient(135deg, #c53030, #9b2c2c) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-bg">
+        <!-- 顶部毛玻璃极简导航栏 -->
+        <nav class="top-glass-navbar">
+            <div class="top-navbar-left">
+                <span class="top-navbar-logo"><i class="fas fa-magic"></i> RAG实训报告</span>
+            </div>
+            <div class="top-navbar-right">
+                <button class="top-navbar-btn" title="模板管理" onclick="openTemplateModal()">
+                    <i class="fas fa-layer-group"></i>
+                </button>
+                <button class="top-navbar-btn" title="个人信息" onclick="openProfileModal()">
+                    <i class="fas fa-user-edit"></i>
+                </button>
+                <button class="top-navbar-btn" title="充值" onclick="openRechargeModal()">
+                    <i class="fas fa-coins"></i>
+                </button>
+                <button class="top-navbar-btn" title="联系管理员" onclick="openContactAdminModal()">
+                    <i class="fas fa-envelope"></i>
+                </button>
+                <button class="top-navbar-btn" title="消息" onclick="openChatModal()">
+                    <i class="fas fa-comments"></i>
+                </button>
+                <!-- 管理员专用按钮 -->
+                <button class="top-navbar-btn admin-only" title="消息管理" onclick="openAdminMessages()" style="display: none;">
+                    <i class="fas fa-headset"></i>
+                </button>
+                <a href="/logout" class="top-navbar-btn" title="退出">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+                <div class="top-navbar-avatar" title="{{ user['name'] if user else '未登录' }}">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </div>
+        </nav>
+        <div class="header">
+            <div class="main-title"><i class="fas fa-magic"></i> RAG实训报告生成系统</div>
+            <div class="subtitle">AI赋能 · 智能文档 · 一键生成</div>
+        </div>
+        
+        <div class="main-card">
+            <div class="main-card-content">
+                <div class="main-card-left">
+                    <div class="section-title"><i class="fas fa-user-graduate"></i> 基本信息</div>
+                    <div class="info-table">
+                        <label>姓名<input type="text" id="name" class="form-control" placeholder="请输入姓名"></label>
+                        <label>学号<input type="text" id="student_id" class="form-control" placeholder="请输入学号"></label>
+                        <label>班级<input type="text" id="class_name" class="form-control" placeholder="请输入班级"></label>
+                        <label>课程<input type="text" id="project_name" class="form-control" placeholder="请输入课程"></label>
+                        <label>导师<input type="text" id="instructor" class="form-control" placeholder="请输入导师"></label>
+                        <label>教材<input type="text" id="textbook" class="form-control" placeholder="请输入教材"></label>
+                        <label>实训室<input type="text" id="lab" class="form-control" placeholder="请输入实训室"></label>
+                        <label>完成日期<input type="text" id="finish_date" class="form-control" placeholder="请输入完成日期"></label>
+                        <label>设计要求<textarea id="design_requirements" class="form-control" rows="2" placeholder="如不填写将自动生成"></textarea></label>
+                        <label>所用知识与技术<textarea id="knowledge_and_tech" class="form-control" rows="2" placeholder="如不填写将自动生成"></textarea></label>
+                        <label>完成情况<textarea id="completion" class="form-control" rows="2" placeholder="如不填写将自动生成"></textarea></label>
+                        <label>自我说明<textarea id="self_statement" class="form-control" rows="2" placeholder="如不填写将自动生成"></textarea></label>
+                    </div>
+                    <div class="main-card-generate">
+                        <div class="section-title" style="margin-bottom:12px;"><i class="fas fa-wand-magic-sparkles"></i> 生成报告</div>
+                        
+                        <!-- 生成模式选择 -->
+                        <div class="generation-mode-selector">
+                            <div class="mode-option">
+                                <input type="radio" id="fusionMode" name="generationMode" value="fusion" checked>
+                                <label for="fusionMode">
+                                    <i class="fas fa-layer-group"></i>
+                                    <span>融合模式</span>
+                                    <small>将所有资料融合生成统一报告</small>
+                                </label>
+                            </div>
+                            <div class="mode-option">
+                                <input type="radio" id="separateMode" name="generationMode" value="separate">
+                                <label for="separateMode">
+                                    <i class="fas fa-files-o"></i>
+                                    <span>区分模式</span>
+                                    <small>按不同文件分别生成段落后整合</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 页面控制选项 -->
+                        <div class="page-control-section">
+                            <div class="section-title" style="margin-bottom: 12px; font-size: 1em;"><i class="fas fa-file-text"></i> 页面控制</div>
+                            <div class="page-control-row">
+                                <label for="targetPages">目标页数:</label>
+                                <select id="targetPages" class="form-control">
+                                    <option value="">自动生成</option>
+                                    <option value="2">2页</option>
+                                    <option value="3">3页</option>
+                                    <option value="4">4页</option>
+                                    <option value="5">5页</option>
+                                    <option value="6">6页</option>
+                                    <option value="8">8页</option>
+                                    <option value="10">10页</option>
+                                </select>
+                                <span>或手动输入：</span>
+                                <input type="number" min="1" id="targetPagesInput" class="form-control" placeholder="页数">
+                                <span class="prompt-help" data-tooltip="选择或输入目标页数可控制生成报告的篇幅。系统会根据页数调整内容的详细程度和长度。">?</span>
+                            </div>
+                            <!-- 自动补全勾选框 -->
+                            <div class="multi-round-checkbox">
+                                <label>
+                                    <input type="checkbox" id="multiRoundCompletion" name="multi_round_completion" value="true">
+                                    启用多轮补全（自动扩写至目标页数）
+                                </label>
+                                <span class="prompt-help" data-tooltip="开启后，系统会自动多轮补全文档，提升页数达标率，但生成时间会更长。">?</span>
+                            </div>
+                        </div>
+                        
+                        <div class="prompt-toggle">
+                            <input type="checkbox" id="advancedFormatting">
+                            <label for="advancedFormatting">启用高级Prompt</label>
+                            <span class="prompt-help" data-tooltip="启用后可自定义AI生成报告的详细提示词">?</span>
+                        </div>
+                        <div class="form-group" id="promptGroup" style="display:none;">
+                            <textarea id="additionalRequirements" class="form-control" rows="2" placeholder="请输入完整Prompt..."></textarea>
+                        </div>
+                        <button id="generateBtn" class="btn btn-magic" style="margin-bottom:12px;">生成报告</button>
+                        <span id="usageCountTip" style="margin-left:16px;font-weight:500;color:#2d8cf0;vertical-align:middle;">剩余次数：<span id="usageCountSpan">--</span></span>
+                        <div class="progress-bar" id="progressBar" style="display:none;">
+                            <div class="progress-inner" id="progressInner"></div>
+                        </div>
+                        <div id="reportStatus" class="report-status"></div>
+                        <div id="downloadSection" class="download-section"></div>
+                        <!-- 新增：报告预览区域 -->
+                        <div id="reportPreview" class="report-preview" style="display:none;margin-top:20px;padding:20px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef;max-height:600px;overflow-y:auto;">
+                            <h4 style="margin-bottom:15px;color:#495057;border-bottom:2px solid #dee2e6;padding-bottom:8px;">
+                                <i class="fas fa-eye"></i> 报告预览
+                            </h4>
+                            <div class="report-content" style="line-height:1.6;color:#2c3e50;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="main-card-right">
+                    <div class="section-title"><i class="fas fa-upload"></i> 上传模板与资料</div>
+                    <div class="upload-section">
+                        <!-- 新增：模板选择下拉框和新建按钮 -->
+                        <div style="margin-bottom: 18px; display: flex; align-items: center; gap: 12px;">
+                            <label for="templateSelect" style="font-weight: 500; color: #2c3e50;">选择模板：</label>
+                            <select id="templateSelect" class="form-input" style="width: 220px;"></select>
+                            <button type="button" class="btn btn-secondary" onclick="openTemplateModal('create')"><i class="fas fa-plus"></i> 新建模板</button>
+                        </div>
+                        <!-- 只保留资料文件上传卡片 -->
+                        <div class="upload-type-card drop-zone" id="dataCard" data-type="data">
+                            <div class="upload-card-inner">
+                                <div class="upload-icon"><i class="fas fa-file-word"></i></div>
+                                <div class="upload-tip">拖拽或点击上传资料文件<br><span class="file-hint">支持 .md, .markdown, .doc, .docx, .pdf, .jpg, .jpeg, .png, .gif, .bmp</span></div>
+                                <input type="file" id="data_files" multiple accept=".md,.markdown,.doc,.docx,.pdf,.jpg,.jpeg,.png,.gif,.bmp" style="display:none;">
+                            </div>
+                        </div>
+                        <div class="uploaded-list-outer"><div class="uploaded-list" id="dataUploaded"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <i class="fas fa-lightbulb"></i> 由AI驱动 · 2025
+        </div>
+    </div>
+    
+    <!-- 模板管理模态框，增加新建模板按钮和弹窗 -->
+    <div id="templateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fas fa-layer-group"></i>
+                    模板管理
+                </div>
+                <span class="close" onclick="closeTemplateModal()">&times;</span>
+            </div>
+            <div style="margin-bottom: 18px; text-align: right; display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-primary" onclick="openCreateTemplateModal()"><i class="fas fa-plus"></i> 新建模板</button>
+                <button class="btn btn-secondary" onclick="openTemplateGuideModal()"><i class="fas fa-info-circle"></i> 了解如何创建模板</button>
+            </div>
+            <div class="template-grid" id="templateGrid">
+                <!-- 模板列表将通过JavaScript动态加载 -->
+            </div>
+            <!-- 新增：模板制作说明弹窗 -->
+            <div id="templateGuideModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title"><i class="fas fa-info-circle"></i> 如何创建模板</div>
+                        <span class="close" onclick="closeTemplateGuideModal()">&times;</span>
+                    </div>
+                    <div style="padding: 12px 0 0 0; line-height: 1.8; color: #2c3e50;">
+                        <b>1. 模板文件格式：</b><br>
+                        &nbsp;&nbsp;仅支持 <b>.doc</b> 或 <b>.docx</b> 格式的Word文档。<br><br>
+                        <b>2. 占位符说明：</b><br>
+                        &nbsp;&nbsp;模板中需包含以下占位符，系统会自动替换：<br>
+                        <ul style="margin: 8px 0 8px 24px;">
+                            <li><b>&#123;&#123;name&#125;&#125;</b>：学生姓名</li>
+                            <li><b>&#123;&#123;student_id&#125;&#125;</b>：学号</li>
+                            <li><b>&#123;&#123;class_name&#125;&#125;</b>：班级</li>
+                            <li><b>&#123;&#123;project_name&#125;&#125;</b>：课程名称</li>
+                            <li><b>&#123;&#123;instructor&#125;&#125;</b>：导师</li>
+                            <li><b>&#123;&#123;finish_date&#125;&#125;</b>：完成日期</li>
+                            <li><b>&#123;&#123;report_body&#125;&#125;</b>：报告正文（<b>正文模板必需</b>）</li>
+                        </ul>
+                        <b>3. 示例：</b><br>
+                        <pre style="background:#f8fafc;border-radius:8px;padding:12px 16px;overflow-x:auto;">尊敬的&#123;&#123;instructor&#125;&#125;老师：
+
+我是&#123;&#123;class_name&#125;&#125;班的&#123;&#123;name&#125;&#125;（学号：&#123;&#123;student_id&#125;&#125;），本次实训课程为《&#123;&#123;project_name&#125;&#125;》。
+
+【正文内容】
+&#123;&#123;report_body&#125;&#125;
+
+完成日期：&#123;&#123;finish_date&#125;&#125;</pre>
+                        <b>4. 注意事项：</b><br>
+                        - 占位符必须用英文大括号包裹，如 <b>&#123;&#123;name&#125;&#125;</b><br>
+                        - 正文模板必须包含 <b>&#123;&#123;report_body&#125;&#125;</b> 占位符，否则无法插入AI生成内容<br>
+                        - 可根据实际需要增删占位符，未填写的字段会自动留空<br>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="modal-btn modal-btn-primary" onclick="closeTemplateGuideModal()">我知道了</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 新建模板弹窗（隐藏，JS控制显示） -->
+            <div id="createTemplateModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title"><i class="fas fa-plus-circle"></i> 新建模板</div>
+                        <span class="close" onclick="closeCreateTemplateModal()">&times;</span>
+                    </div>
+                    <form id="createTemplateForm" class="create-template-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">模板名称</label>
+                                <input type="text" id="templateName" class="form-input" placeholder="请输入模板名称" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">封面模板</label>
+                            <input type="file" id="createCoverTemplate" class="form-input" accept=".doc,.docx" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">正文模板</label>
+                            <input type="file" id="createBodyTemplate" class="form-input" accept=".doc,.docx" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="modal-btn modal-btn-secondary" onclick="closeCreateTemplateModal()">取消</button>
+                            <button type="submit" class="modal-btn modal-btn-primary">创建模板</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- 编辑模板弹窗（隐藏，JS控制显示） -->
+            <div id="editTemplateModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title"><i class="fas fa-edit"></i> 编辑模板</div>
+                        <span class="close" onclick="closeEditTemplateModal()">&times;</span>
+                    </div>
+                    <form id="editTemplateForm" class="create-template-form">
+                        <input type="hidden" id="editTemplateId">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">模板名称</label>
+                                <input type="text" id="editTemplateName" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">更换封面模板（可选）</label>
+                            <input type="file" id="editCoverTemplate" class="form-input" accept=".doc,.docx">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">更换正文模板（可选）</label>
+                            <input type="file" id="editBodyTemplate" class="form-input" accept=".doc,.docx">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="modal-btn modal-btn-secondary" onclick="closeEditTemplateModal()">取消</button>
+                            <button type="submit" class="modal-btn modal-btn-primary">保存修改</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 个人信息模态框 -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fas fa-user-edit"></i>
+                    个人信息
+                </div>
+                <span class="close" onclick="closeProfileModal()">&times;</span>
+            </div>
+            
+            <form id="profileForm" class="create-template-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">姓名</label>
+                        <input type="text" id="profileName" class="form-input" value="{{ user['name'] if user else '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">学号</label>
+                        <input type="text" id="profileStudentId" class="form-input" value="{{ user['student_id'] if user else '' }}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">班级</label>
+                    <input type="text" id="profileClassName" class="form-input" value="{{ user['class_name'] if user else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" id="profileEmail" class="form-input" value="{{ user['email'] if user else '' }}" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn modal-btn-secondary" onclick="closeProfileModal()">取消</button>
+                    <button type="submit" class="modal-btn modal-btn-primary">保存信息</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 充值弹窗 -->
+    <div id="rechargeModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-coins"></i> 充值使用次数</div>
+                <span class="close" onclick="closeRechargeModal()">&times;</span>
+            </div>
+            <div style="padding: 10px 0 0 0; line-height: 1.7; color: #2c3e50;">
+                <b>请在下方支付窗口完成充值</b><br>
+                <span style="color:#e53e3e;font-weight:bold;">
+                    支付时请务必在备注中填写你的用户名：<span id="currentUsername" style="color:#667eea;"></span><br>
+                    <span style="color:#e53e3e;font-weight:normal;">（否则无法自动获取到次数）</span>
+                </span><br>
+                <br>
+                <iframe id="afdian_iframe" src="https://afdian.com/leaflet?slug=LunticD22" width="100%" scrolling="no" height="220" frameborder="0" style="border-radius:12px;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn-primary" onclick="closeRechargeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    <!-- 联系管理员弹窗 -->
+    <div id="contactAdminModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-envelope"></i> 联系管理员</div>
+                <span class="close" onclick="closeContactAdminModal()">&times;</span>
+            </div>
+            <div style="padding: 10px 0 0 0; line-height: 1.7; color: #2c3e50;">
+                <b>你的意见非常重要，可以通过以下方式发表你的看法：</b><br><br>
+                1. 在博客下方发表评论，地址<a href="https://wittleluna.github.io/zh-cn/about/" target="_blank">https://wittleluna.github.io/zh-cn/about/</a>, <br>需要注意的是，由于评论区后端服务器在国外，可能不能正常评论<br>
+                2. 通过邮件，地址<br> <a href="mailto:1270654283@QQ.com">1270654283@QQ.com</a><br>
+                3. 通过其他渠道直接联系
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn-primary" onclick="closeContactAdminModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    <!-- 聊天弹窗 -->
+    <div id="chatModal" class="modal" style="display:none;z-index:2000;">
+        <div class="modal-content" style="max-width: 480px;min-height:400px;display:flex;flex-direction:column;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-comments"></i> 消息中心</div>
+                <span class="close" onclick="closeChatModal()">&times;</span>
+            </div>
+            <div id="chatHistory" style="flex:1;overflow-y:auto;padding:10px 0 10px 0;"></div>
+            <form id="chatForm" style="display:flex;gap:8px;align-items:center;margin-top:8px;" enctype="multipart/form-data">
+                <input type="text" id="chatInput" class="form-control" placeholder="输入消息..." style="flex:1;">
+                <input type="file" id="chatImage" accept="image/*" style="display:none;">
+                <button type="button" class="btn" onclick="document.getElementById('chatImage').click();" title="上传图片"><i class="fas fa-image"></i></button>
+                <button type="submit" class="btn btn-magic"><i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </div>
+    <script src="/static/js/main.js"></script>
+    <script>
+    // 自动勾选多轮补全功能
+    const targetPagesSelect = document.getElementById('targetPages');
+    const targetPagesInput = document.getElementById('targetPagesInput');
+    const multiRoundCheckbox = document.getElementById('multiRoundCompletion');
+    function updateMultiRoundCheckbox() {
+        let val = parseInt(targetPagesSelect.value || targetPagesInput.value, 10);
+        if (!isNaN(val) && val >= 10) {
+            multiRoundCheckbox.checked = true;
+        } else {
+            multiRoundCheckbox.checked = false;
+        }
+    }
+    targetPagesSelect.addEventListener('change', updateMultiRoundCheckbox);
+    targetPagesInput.addEventListener('input', updateMultiRoundCheckbox);
+    
+    // 模板管理功能
+    function openTemplateModal() {
+        document.getElementById('templateModal').style.display = 'block';
+        loadTemplates();
+    }
+    
+    function closeTemplateModal() {
+        document.getElementById('templateModal').style.display = 'none';
+    }
+    
+    function loadTemplates() {
+        fetch('/templates')
+            .then(response => response.json())
+            .then(data => {
+                const templateGrid = document.getElementById('templateGrid');
+                templateGrid.innerHTML = '';
+                (data.user_templates || []).forEach(template => {
+                    const templateCard = document.createElement('div');
+                    templateCard.className = 'template-card';
+                    templateCard.innerHTML = `
+                        <div class="template-name">${template.name}</div>
+                        <div class="template-info">
+                            创建时间: ${new Date(template.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="template-actions">
+                            <button class="template-action-btn use-template-btn" onclick="useTemplate(${template.id})">使用</button>
+                            <button class="template-action-btn" onclick="openEditTemplateModal(${template.id}, '${template.name}')">编辑</button>
+                            <button class="template-action-btn delete-template-btn" onclick="deleteTemplate(${template.id})">删除</button>
+                        </div>
+                    `;
+                    templateGrid.appendChild(templateCard);
+                });
+                (data.example_templates || []).forEach(template => {
+                    const templateCard = document.createElement('div');
+                    templateCard.className = 'template-card';
+                    templateCard.innerHTML = `
+                        <div class="template-name">${template.name}（示例）</div>
+                        <div class="template-info">
+                            创建时间: ${new Date(template.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="template-actions">
+                            <button class="template-action-btn use-template-btn" onclick="useTemplate(${template.id})">使用</button>
+                        </div>
+                    `;
+                    templateGrid.appendChild(templateCard);
+                });
+            })
+            .catch(error => {
+                console.error('加载模板失败:', error);
+                alert('加载模板失败，请稍后重试');
+            });
+    }
+    
+    function useTemplate(templateId) {
+        fetch(`/templates/${templateId}/files`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.cover_template_path && data.body_template_path) {
+                    // 设置全局变量
+                    window.selectedTemplate = {
+                        cover_template_path: data.cover_template_path,
+                        body_template_path: data.body_template_path,
+                        template_id: templateId,
+                        template_name: ''
+                    };
+                    // 同步下拉框选中状态
+                    const select = document.getElementById('templateSelect');
+                    if (select) {
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value == templateId) {
+                                select.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    alert('模板已应用！');
+                    closeTemplateModal();
+                } else {
+                    alert('模板信息不完整，请稍后重试');
+                }
+            })
+            .catch(error => {
+                console.error('使用模板失败:', error);
+                alert('使用模板失败，请稍后重试');
+            });
+    }
+    
+    function deleteTemplate(templateId) {
+        if (confirm('确定要删除这个模板吗？')) {
+            fetch(`/templates/${templateId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadTemplates();
+                    loadTemplateSelect();
+                    alert('模板删除成功');
+                } else {
+                    alert('删除失败，请稍后重试');
+                }
+            })
+            .catch(error => {
+                console.error('删除模板失败:', error);
+                alert('删除模板失败，请稍后重试');
+            });
+        }
+    }
+    
+    // 新建模板弹窗逻辑
+    function openCreateTemplateModal() {
+        document.getElementById('createTemplateModal').style.display = 'block';
+    }
+    function closeCreateTemplateModal() {
+        document.getElementById('createTemplateModal').style.display = 'none';
+    }
+    document.getElementById('createTemplateForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('templateName').value;
+        const coverFile = document.getElementById('createCoverTemplate').files[0];
+        const bodyFile = document.getElementById('createBodyTemplate').files[0];
+        if (!name || !coverFile || !bodyFile) {
+            alert('请填写完整信息并上传模板文件');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('cover_template', coverFile);
+        formData.append('body_template', bodyFile);
+        fetch('/templates/create', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.template_id) {
+                alert('模板创建成功');
+                closeCreateTemplateModal();
+                loadTemplates();
+                loadTemplateSelect();
+            } else {
+                alert(data.detail || '创建失败，请稍后重试');
+            }
+        })
+        .catch(error => {
+            alert('创建模板失败: ' + error);
+        });
+    });
+    
+    // 编辑模板弹窗逻辑
+    function openEditTemplateModal(id, name) {
+        document.getElementById('editTemplateId').value = id;
+        document.getElementById('editTemplateName').value = name;
+        document.getElementById('editCoverTemplate').value = '';
+        document.getElementById('editBodyTemplate').value = '';
+        document.getElementById('editTemplateModal').style.display = 'block';
+    }
+    function closeEditTemplateModal() {
+        document.getElementById('editTemplateModal').style.display = 'none';
+    }
+    document.getElementById('editTemplateForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('editTemplateId').value;
+        const name = document.getElementById('editTemplateName').value;
+        const coverFile = document.getElementById('editCoverTemplate').files[0];
+        const bodyFile = document.getElementById('editBodyTemplate').files[0];
+        const formData = new FormData();
+        if (name) formData.append('name', name);
+        if (coverFile) formData.append('cover_template', coverFile);
+        if (bodyFile) formData.append('body_template', bodyFile);
+        fetch(`/templates/update/${id}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.template_id) {
+                alert('模板修改成功');
+                closeEditTemplateModal();
+                loadTemplates();
+                loadTemplateSelect();
+            } else {
+                alert(data.detail || '修改失败');
+            }
+        })
+        .catch(error => {
+            alert('修改失败: ' + error);
+        });
+    });
+    
+    // 个人信息管理功能
+    function openProfileModal() {
+        document.getElementById('profileModal').style.display = 'block';
+    }
+    
+    function closeProfileModal() {
+        document.getElementById('profileModal').style.display = 'none';
+    }
+    
+    // 更新个人信息
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('name', document.getElementById('profileName').value);
+        formData.append('student_id', document.getElementById('profileStudentId').value);
+        formData.append('class_name', document.getElementById('profileClassName').value);
+        formData.append('email', document.getElementById('profileEmail').value);
+        
+        fetch('/user/update_profile', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('个人信息更新成功');
+                closeProfileModal();
+                // 刷新页面以更新显示的信息
+                location.reload();
+            } else {
+                alert(data.detail || '更新失败，请稍后重试');
+            }
+        })
+        .catch(error => {
+            console.error('更新个人信息失败:', error);
+            alert('更新个人信息失败，请稍后重试');
+        });
+    });
+    
+    // 点击模态框外部关闭，支持新建/编辑弹窗
+    window.onclick = function(event) {
+        const templateModal = document.getElementById('templateModal');
+        const createTemplateModal = document.getElementById('createTemplateModal');
+        const editTemplateModal = document.getElementById('editTemplateModal');
+        const profileModal = document.getElementById('profileModal');
+        const rechargeModal = document.getElementById('rechargeModal');
+        if (event.target === templateModal) closeTemplateModal();
+        if (event.target === createTemplateModal) closeCreateTemplateModal();
+        if (event.target === editTemplateModal) closeEditTemplateModal();
+        if (event.target === profileModal) closeProfileModal();
+        if (event.target === rechargeModal) closeRechargeModal();
+    }
+    
+    // 自动填充用户信息到基本信息表单
+    document.addEventListener('DOMContentLoaded', function() {
+        const user = {
+            name: "{{ user['name'] if user else '' }}",
+            student_id: "{{ user['student_id'] if user else '' }}",
+            class_name: "{{ user['class_name'] if user else '' }}"
+        };
+        
+        if (user.name) {
+            document.getElementById('name').value = user.name;
+        }
+        if (user.student_id) {
+            document.getElementById('student_id').value = user.student_id;
+        }
+        if (user.class_name) {
+            document.getElementById('class_name').value = user.class_name;
+        }
+    });
+    
+    // 模板选择下拉框联动
+    function loadTemplateSelect() {
+        fetch('/templates')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('templateSelect');
+                select.innerHTML = '<option value="">请选择模板</option>';
+                (data.user_templates || []).forEach(t => {
+                    select.innerHTML += `<option value="${t.id}" data-cover="${t.cover_template_path}" data-body="${t.body_template_path}">${t.name}</option>`;
+                });
+                (data.example_templates || []).forEach(t => {
+                    select.innerHTML += `<option value="${t.id}" data-cover="${t.cover_template_path}" data-body="${t.body_template_path}">${t.name}（示例）</option>`;
+                });
+            });
+    }
+    document.addEventListener('DOMContentLoaded', loadTemplateSelect);
+    document.getElementById('templateSelect').addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const cover = selected.getAttribute('data-cover');
+        const body = selected.getAttribute('data-body');
+        if (cover && body) {
+            // 保存选中模板路径到全局变量
+            window.selectedTemplate = {
+                cover_template_path: cover,
+                body_template_path: body,
+                template_id: selected.value,
+                template_name: selected.text
+            };
+            // 可视化提示
+            alert('已选择模板：' + selected.text + '\n封面模板和正文模板将自动应用。');
+            // 可选：在上传区显示"已选模板"提示
+            document.getElementById('dataUploaded').innerHTML = `<div class='uploaded-file'>已选模板：${selected.text}</div>`;
+        } else {
+            window.selectedTemplate = null;
+            document.getElementById('dataUploaded').innerHTML = '';
+        }
+    });
+
+    function openTemplateGuideModal() {
+        document.getElementById('templateGuideModal').style.display = 'block';
+    }
+    function closeTemplateGuideModal() {
+        document.getElementById('templateGuideModal').style.display = 'none';
+    }
+
+    function openRechargeModal() {
+        document.getElementById('rechargeModal').style.display = 'block';
+        // 自动填充用户名（改为用户名而不是姓名）
+        var user = window.userInfo && window.userInfo.username ? window.userInfo.username : '';
+        document.getElementById('currentUsername').innerText = user || '（请先填写用户名）';
+    }
+    function closeRechargeModal() {
+        document.getElementById('rechargeModal').style.display = 'none';
+    }
+    // 拉取用户信息并缓存到window.userInfo，便于弹窗使用
+    fetch('/user/profile').then(res => res.json()).then(data => { 
+        window.userInfo = data; 
+        // 如果是管理员，显示管理员专用按钮
+        if (data.username === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = 'inline-block';
+            });
+        }
+    });
+
+    // 使用说明弹窗（滚动单页）
+    function openUsageGuideModal() {
+        document.getElementById('usageGuideModal').style.display = 'block';
+    }
+    function closeUsageGuideModal() {
+        document.getElementById('usageGuideModal').style.display = 'none';
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('usageGuideModal').style.display = 'block';
+    });
+
+    function openContactAdminModal() {
+        document.getElementById('contactAdminModal').style.display = 'block';
+    }
+    function closeContactAdminModal() {
+        document.getElementById('contactAdminModal').style.display = 'none';
+    }
+
+    let chatPeerId = null; // 管理员ID，首次自动获取
+    async function getAdminId() {
+        if (chatPeerId) return chatPeerId;
+        try {
+            // 新接口，普通用户也能访问
+            const res = await fetch('/user/admin_id');
+            if (!res.ok) {
+                throw new Error(`获取管理员ID失败: ${res.status}`);
+            }
+            const data = await res.json();
+            chatPeerId = data.admin_id;
+            return chatPeerId;
+        } catch (error) {
+            console.error('获取管理员ID失败:', error);
+            alert('获取管理员ID失败，请刷新页面重试');
+            return null;
+        }
+    }
+    async function loadChatHistory() {
+        try {
+            // 获取管理员ID
+            const adminId = await getAdminId();
+            if (!adminId) {
+                console.error('无法获取管理员ID');
+                return;
+            }
+            
+            const res = await fetch(`/messages/list?peer_id=${adminId}`);
+            if (!res.ok) {
+                throw new Error(`获取消息列表失败: ${res.status}`);
+            }
+            const msgs = await res.json();
+            
+            // 确保msgs是数组
+            if (!Array.isArray(msgs)) {
+                console.error('消息列表格式错误:', msgs);
+                return;
+            }
+            
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML = '';
+            msgs.forEach(msg => {
+                const div = document.createElement('div');
+                div.style.margin = '8px 0';
+                div.style.textAlign = msg.from_user_id === adminId ? 'left' : 'right';
+                let html = '';
+                if (msg.image_url) {
+                    html += `<img src="${msg.image_url}" style="max-width:180px;max-height:120px;border-radius:6px;display:block;margin:${msg.from_user_id === adminId ? '0 0 0 auto' : '0 auto 0 0'};">`;
+                }
+                if (msg.content) {
+                    html += `<span style="display:inline-block;padding:8px 14px;border-radius:12px;background:${msg.from_user_id === adminId ? '#f1f1f1' : '#667eea'};color:${msg.from_user_id === adminId ? '#333' : '#fff'};margin-top:4px;max-width:70%;word-break:break-all;">${msg.content}</span>`;
+                }
+                div.innerHTML = html;
+                chatHistory.appendChild(div);
+            });
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        } catch (error) {
+            console.error('加载聊天记录失败:', error);
+        }
+    }
+    document.getElementById('chatForm').onsubmit = async function(e) {
+        e.preventDefault();
+        try {
+            const adminId = await getAdminId();
+            if (!adminId) {
+                alert('无法获取管理员ID，请刷新页面重试');
+                return;
+            }
+            
+            const input = document.getElementById('chatInput');
+            const imageInput = document.getElementById('chatImage');
+            const formData = new FormData();
+            formData.append('to_user_id', adminId);
+            if (input.value.trim()) formData.append('content', input.value.trim());
+            if (imageInput.files[0]) formData.append('image', imageInput.files[0]);
+            
+            const res = await fetch('/messages/send', {method:'POST', body:formData});
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.detail || `发送消息失败: ${res.status}`);
+            }
+            
+            input.value = '';
+            imageInput.value = '';
+            await loadChatHistory();
+        } catch (error) {
+            console.error('发送消息失败:', error);
+            alert('发送消息失败: ' + error.message);
+        }
+    };
+    document.getElementById('chatImage').onchange = function() {
+        if (this.files[0]) {
+            document.getElementById('chatInput').value = '[图片]';
+        }
+    };
+    // 可选：定时刷新消息
+    setInterval(() => {
+        if (document.getElementById('chatModal').style.display === 'block') {
+            loadChatHistory().catch(error => {
+                console.error('定时刷新消息失败:', error);
+            });
+        }
+    }, 5000);
+
+    function openChatModal() {
+        document.getElementById('chatModal').style.display = 'block';
+        loadChatHistory();
+    }
+    function closeChatModal() {
+        document.getElementById('chatModal').style.display = 'none';
+    }
+
+    // 管理员消息中心
+    function openAdminMessages() {
+        window.open('/admin/messages', '_blank');
+    }
+    </script>
+    <!-- 使用说明弹窗（滚动单页） -->
+    <div id="usageGuideModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-info-circle"></i> 使用说明</div>
+                <span class="close" onclick="closeUsageGuideModal()">&times;</span>
+            </div>
+            <div class="usage-guide-scroll" style="padding: 0 8px;">
+                <h3>系统简介</h3>
+                <p>本系统支持AI自动生成实训报告，支持多模板、资料上传、智能插图、格式自动修正等功能。</p>
+                <ul>
+                    <li>注册/登录后可上传资料和模板</li>
+                    <li>支持多种资料格式和图片</li>
+                    <li>AI自动插图，报告格式自动规范</li>
+                </ul>
+                <h3>使用流程</h3>
+                <ol>
+                    <li>选择或上传Word模板（封面/正文）</li>
+                    <li>上传资料文件（docx，md,支持图片）</li>
+                    <li>填写基本信息，设置生成参数</li>
+                    <li>点击"生成报告"，等待AI生成</li>
+                    <li>下载Word报告，图片和格式均已自动处理</li>
+                </ol>
+                <h3>常见问题</h3>
+                <ul>
+                    <li>选择默认模板即可</li>
+                    <li>生成模式的区别：融合模式下，AI会根据所有资料融合为一个内容，区分模式下，AI会根据资料的类型，将资料分开，分别生成不同的内容</li>
+                    <li>高级prompt功能：在高级设置中，可以输入高级prompt，AI会根据prompt生成报告，如你想要的风格，要求等</li>
+                    <li>早期阶段，项目不稳定，更多问题请联系管理员</li>
+                </ul>
+                <h3 style="color:#e53e3e;font-weight:bold;">推荐使用方法</h3>
+                <ol style="color:#e53e3e;font-weight:bold;">
+                    <li>选择默认模板</li>
+                    <li>选择区分模式（这样才会按照每个项目，逐段落的生成报告）</li>
+                    <li>资料文档的内容不能太少，否则在多轮补全时，AI会自动发挥</li>
+                    <li>设计要求及之后的四个空不写，系统会根据你的文档内容自动生成，写的话尽量不要写太多，会造成格式上的不美观(待修复，处理用户输入特别多要求设计等的提取情况)</li>
+                </ol>
+                <h3 style="color:#fbbf24;font-weight:bold;">20257.4更新：</h3>
+                <div style="color:#fbbf24;font-weight:bold;font-size:1.1em;margin-bottom:12px;">添加了通讯功能，可以直接在导航栏上方和管理员联系了</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

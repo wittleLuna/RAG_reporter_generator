@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  report-generator:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./temp:/app/temp
+      - ./chroma_db:/app/chroma_db
+    environment:
+      - DEBUG=False
+      - HOST=0.0.0.0
+      - PORT=8000
+      - AI_API_URL=http://ollama:11434/api/generate
+      - AI_MODEL_NAME=qwen2.5:7b
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 10 &&
+        ollama pull qwen2.5:7b &&
+        wait
+      "
+
+volumes:
+  ollama_data: 
