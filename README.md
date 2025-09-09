@@ -1,3 +1,7 @@
+[English](#english) | [中文](#中文)
+
+## 中文
+
 # RAG实训报告生成系统
 
 一个基于AI的智能实训报告生成系统，支持用户登录注册、模板管理和自动报告生成。
@@ -173,7 +177,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 
 ## 更新日志
 
-### v1.0.0 (2025-01-XX)
+### v1.0.0 (2025-06-20)
 - 初始版本发布
 - 支持用户注册登录
 - 支持模板管理
@@ -187,3 +191,219 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ## 联系方式
 
 如有问题或建议，请联系开发团队。
+
+## English
+
+# RAG Training Report Generation System
+
+An AI-powered intelligent training report generation system that supports user registration/login, template management, and automated report generation.
+
+## Features
+
+### 🔐 User System
+- **User Registration/Login**: Manage user accounts securely
+- **Profile Management**: Automatically save and fill in user information
+- **Session Management**: Secure session control
+
+### 📝 Template Management
+- **Template Creation**: Create custom cover and body templates
+- **Template Usage**: Quickly apply saved templates
+- **Template Deletion**: Manage personal template library
+
+### 🤖 AI Report Generation
+- **Multi-Mode Generation**: Supports fusion mode and separate mode
+- **Intelligent Completion**: Multi-round auto-completion
+- **Page Control**: Precisely control the number of report pages
+- **Advanced Prompts**: Customize AI generation prompts
+
+### 📁 File Support
+- **Multiple Formats**: Supports .md, .doc, .docx, .pdf, images, etc.
+- **Drag-and-Drop Upload**: Convenient file upload
+- **Template Placeholders**: Automatically detect and replace variables
+
+## Installation
+
+### 1. Requirements
+- Python 3.8+
+- Modern browsers (Chrome, Firefox, Safari, Edge)
+
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+````
+
+### 3. Environment Configuration
+
+Create a `.env` file and configure the following:
+
+```env
+# Database
+DATABASE_URL=sqlite:///./rag_system.db
+
+# Secret Key
+SECRET_KEY=your-secret-key-here
+
+# AI Service
+OPENAI_API_KEY=your-openai-api-key
+DASHSCOPE_API_KEY=your-dashscope-api-key
+
+# Others
+UPLOAD_DIR=uploads
+TEMP_DIR=temp
+```
+
+### 4. Start the Service
+
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+## User Guide
+
+### 1. User Registration
+
+1. Visit the homepage and click "Register Now"
+2. Fill in username, email, password, etc.
+3. After registration, redirect to the login page
+
+### 2. Profile Settings
+
+1. After login, click "Profile" in the top-right
+2. Fill in name, student ID, class, etc.
+3. Saved info will auto-fill the report form
+
+### 3. Template Management
+
+1. Click "Template Management"
+2. Create a new template:
+
+   * Select type (Cover/Body)
+   * Upload file (.doc/.docx)
+   * Set template name
+3. Use an existing template:
+
+   * Select from the list
+   * Click "Use Template"
+
+### 4. Generate Report
+
+1. **Fill in Basic Info**: Auto-filled from profile
+2. **Upload Templates**:
+
+   * Cover template: must include placeholders
+   * Body template: must include `{{report_body}}`
+3. **Upload Materials**: Supports multiple file formats
+4. **Select Mode**:
+
+   * Fusion mode: Merge all into one report
+   * Separate mode: Generate separately, then combine
+5. **Set Page Control**:
+
+   * Choose target pages or enter manually
+   * Enable multi-round completion if needed
+6. **Generate Report**: Click "Generate" to start
+
+## Template Placeholders
+
+### Required in Cover Template
+
+* `{{name}}` - Student Name
+* `{{student_id}}` - Student ID
+* `{{project_name}}` - Course Name
+
+### Optional in Cover Template
+
+* `{{class_name}}` - Class
+* `{{instructor}}` - Instructor
+
+### Required in Body Template
+
+* `{{report_body}}` - Report Content
+
+### Optional in Body Template
+
+* `{{name}}` - Student Name
+* `{{student_id}}` - Student ID
+* `{{class_name}}` - Class
+* `{{instructor}}` - Instructor
+* `{{project_name}}` - Course Name
+
+## System Architecture
+
+```
+├── app.py                 # Main Application
+├── templates/             # HTML Templates
+│   ├── index.html        # Homepage
+│   ├── login.html        # Login Page
+│   └── register.html     # Register Page
+├── static/               # Static Files
+│   ├── css/             # CSS
+│   └── js/              # JavaScript
+├── uploads/             # Uploaded Files
+├── user_templates/      # User Templates
+├── logs/               # Logs
+└── requirements.txt    # Dependencies
+```
+
+## Tech Stack
+
+* **Backend**: FastAPI + SQLAlchemy + SQLite
+* **Frontend**: HTML5 + CSS3 + JavaScript
+* **AI Services**: OpenAI API + Dashscope API
+* **Document Processing**: python-docx + PyPDF2
+* **Vector Database**: ChromaDB
+* **Authentication**: Passlib + Python-Jose
+
+## Notes
+
+1. **API Keys**: Ensure proper AI service API keys
+2. **File Size**: Recommended <50MB
+3. **Template Format**: Must be .doc/.docx
+4. **Placeholders**: Ensure required placeholders exist
+5. **Network**: Requires stable connection
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Login Failed**
+
+   * Check username/password
+   * Ensure database is accessible
+
+2. **Template Upload Failed**
+
+   * Ensure format is .doc or .docx
+   * Check file size limit
+
+3. **Report Generation Failed**
+
+   * Verify API keys
+   * Check network connection
+   * Review logs for details
+
+4. **Page Display Issues**
+
+   * Clear browser cache
+   * Check browser compatibility
+
+## Changelog
+
+### v1.0.0 (2025-06-20)
+
+* Initial release
+* User registration & login
+* Template management
+* AI report generation
+* Multi-format file support
+
+## License
+
+This project is licensed under the MIT License. See LICENSE for details.
+
+## Contact
+
+For issues or suggestions, please contact the development team.
+
+
+
